@@ -5,7 +5,7 @@ const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const app = express();
-const port = process.env.PORT || 3000;
+const port = process.env.PORT || 5000;
 
 //middleware
 app.use(cors());
@@ -39,14 +39,19 @@ async function run() {
 		});
 
 		//users
+		app.get('/users', async (req, res) => {
+			const result = await userCollection.find().toArray();
+			res.send(result);
+		});
 		app.post('/users', async (req, res) => {
 			const user = req.body;
 			const query = { email: user.email };
 			const existsUser = await userCollection.findOne(query);
 
 			if (existsUser) {
-				res.send({ message: 'user already exists.' });
+				return res.send({ message: 'user already exists.' });
 			}
+			user.role = 'student';
 			const result = await userCollection.insertOne(user);
 			res.send(result);
 		});
