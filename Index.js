@@ -48,6 +48,7 @@ async function run() {
 		// await client.connect();
 
 		const userCollection = client.db('sportsCamp').collection('users');
+		const classCollection = client.db('sportsCamp').collection('classes');
 
 		//verifyAdmin
 		const verifyAdmin = async (req, res, next) => {
@@ -84,68 +85,82 @@ async function run() {
 		});
 
 		//users
-		app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
-			const result = await userCollection.find().toArray();
-			res.send(result);
-		});
-		app.post('/users', async (req, res) => {
-			const user = req.body;
-			const query = { email: user.email };
-			const existsUser = await userCollection.findOne(query);
+		{
+			app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
+				const result = await userCollection.find().toArray();
+				res.send(result);
+			});
+			app.post('/users', async (req, res) => {
+				const user = req.body;
+				const query = { email: user.email };
+				const existsUser = await userCollection.findOne(query);
 
-			if (existsUser) {
-				return res.send({ message: 'user already exists.' });
-			}
-			user.role = 'student';
-			const result = await userCollection.insertOne(user);
-			res.send(result);
-		});
+				if (existsUser) {
+					return res.send({ message: 'user already exists.' });
+				}
+				user.role = 'student';
+				const result = await userCollection.insertOne(user);
+				res.send(result);
+			});
 
-		app.get('/users/admin/:email', verifyJWT, verifyAdmin, async (req, res) => {
-			const email = req.params.email;
+			app.get('/users/admin/:email', verifyJWT, async (req, res) => {
+				const email = req.params.email;
 
-			if (req.decoded?.email !== email) {
-				res.send({ admin: false });
-			}
+				if (req.decoded?.email !== email) {
+					res.send({ admin: false });
+				}
 
-			const query = { email: email };
-			const user = await userCollection.findOne(query);
-			const result = { admin: user.role === 'admin' };
-			res.send(result);
-		});
-		app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
-			const email = req.params.email;
+				const query = { email: email };
+				const user = await userCollection.findOne(query);
+				const result = { admin: user.role === 'admin' };
+				res.send(result);
+			});
+			app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+				const email = req.params.email;
 
-			if (req.decoded?.email !== email) {
-				res.send({ instructor: false });
-			}
+				if (req.decoded?.email !== email) {
+					res.send({ instructor: false });
+				}
 
-			const query = { email: email };
-			const user = await userCollection.findOne(query);
-			const result = { instructor: user?.role === 'instructor' };
-			res.send(result);
-		});
+				const query = { email: email };
+				const user = await userCollection.findOne(query);
+				const result = { instructor: user?.role === 'instructor' };
+				res.send(result);
+			});
 
-		app.patch('/users/admin/:id', verifyJWT, verifyAdmin, async (req, res) => {
-			const id = req.params.id;
-			const filter = { _id: new ObjectId(id) };
-			const updateDoc = {
-				$set: {
-					role: 'admin',
-				},
-			};
-			const result = await userCollection.updateOne(filter, updateDoc);
-			res.send(result);
-		});
-		app.patch('/users/instructor/:id', async (req, res) => {
-			const id = req.params.id;
-			const filter = { _id: new ObjectId(id) };
-			const updateDoc = {
-				$set: {
-					role: 'instructor',
-				},
-			};
-			const result = await userCollection.updateOne(filter, updateDoc);
+			app.patch(
+				'/users/admin/:id',
+				verifyJWT,
+				verifyAdmin,
+				async (req, res) => {
+					const id = req.params.id;
+					const filter = { _id: new ObjectId(id) };
+					const updateDoc = {
+						$set: {
+							role: 'admin',
+						},
+					};
+					const result = await userCollection.updateOne(filter, updateDoc);
+					res.send(result);
+				}
+			);
+			app.patch('/users/instructor/:id', async (req, res) => {
+				const id = req.params.id;
+				const filter = { _id: new ObjectId(id) };
+				const updateDoc = {
+					$set: {
+						role: 'instructor',
+					},
+				};
+				const result = await userCollection.updateOne(filter, updateDoc);
+				res.send(result);
+			});
+		}
+
+		//Add Class
+		app.post('/add-class', verifyJWT, verifyInstructor, async (req, res) => {
+			const newClass = req.body;
+			const result = await classCollection.insertOne(newClass);
 			res.send(result);
 		});
 
