@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 require('dotenv').config();
+const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion } = require('mongodb');
 
 const app = express();
@@ -8,6 +9,7 @@ const port = process.env.PORT || 3000;
 
 //middleware
 app.use(cors());
+app.use(express.json());
 
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASS}@cluster0.ws55k5x.mongodb.net/?retryWrites=true&w=majority`;
 
@@ -23,12 +25,35 @@ const client = new MongoClient(uri, {
 async function run() {
 	try {
 		// Connect the client to the server	(optional starting in v4.7)
-		await client.connect();
+		// await client.connect();
+
+		const userCollection = client.db('sportsCamp').collection('users');
+
+		//jwt
+		app.post('/jwt', (req, res) => {
+			const user = req.body;
+			const token = jwt.sign(user, process.env.ACCESS_TOKEN, {
+				expiresIn: '1h',
+			});
+			res.send({ token });
+		});
+
+		//users
+		app.post('/users', async (req, res) => {
+			const user = req.body;
+			const query = { email: user.email };
+			const existsUser = await userCollection.findOne(query);
+
+			if (existsUser) {
+				res.send({ message: 'user already exists.' });
+			}
+			const result = await userCollection.insertOne(user);
+			res.send(result);
+		});
+
 		// Send a ping to confirm a successful connection
 		await client.db('admin').command({ ping: 1 });
 
-
-		
 		console.log(
 			'Pinged your deployment. You successfully connected to MongoDB!'
 		);
