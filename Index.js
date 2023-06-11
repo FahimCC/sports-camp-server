@@ -160,9 +160,97 @@ async function run() {
 		//Add Class
 		app.post('/add-class', verifyJWT, verifyInstructor, async (req, res) => {
 			const newClass = req.body;
+			newClass.status = 'pending';
+			newClass.feedback = 'none';
 			const result = await classCollection.insertOne(newClass);
 			res.send(result);
 		});
+
+		//my-classes
+		app.get(
+			'/my-classes/:email',
+			verifyJWT,
+			verifyInstructor,
+			async (req, res) => {
+				const email = req.params.email;
+				const query = { instructorEmail: email };
+				const result = await classCollection.find(query).toArray();
+				res.send(result);
+			}
+		);
+		app.get(
+			'/my-classes/:email',
+			verifyJWT,
+			verifyInstructor,
+			async (req, res) => {
+				const email = req.params.email;
+				const query = { instructorEmail: email };
+				const result = await classCollection.find(query).toArray();
+				res.send(result);
+			}
+		);
+		app.get(
+			'/update-class/:id',
+			verifyJWT,
+			verifyInstructor,
+			async (req, res) => {
+				const id = req.params.id;
+				const query = { _id: new ObjectId(id) };
+				const result = await classCollection.findOne(query);
+				res.send(result);
+			}
+		);
+		app.patch(
+			'/update-class/:id',
+			verifyJWT,
+			verifyInstructor,
+			async (req, res) => {
+				const id = req.params.id;
+				const classInfo = req.body;
+				const query = { _id: new ObjectId(id) };
+				const updateDoc = {
+					$set: {
+						availableSeat: classInfo.availableSeat,
+						price: classInfo.price,
+					},
+				};
+				const result = await classCollection.updateOne(query, updateDoc);
+				res.send(result);
+			}
+		);
+		app.get('/my-classes', verifyJWT, verifyAdmin, async (req, res) => {
+			const result = await classCollection.find().toArray();
+			res.send(result);
+		});
+		app.patch('/my-classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
+			const id = req.params.id;
+			const { status } = req.body;
+			const query = { _id: new ObjectId(id) };
+			const updateDoc = {
+				$set: {
+					status: status,
+				},
+			};
+			const result = await classCollection.updateOne(query, updateDoc);
+			res.send(result);
+		});
+		app.patch(
+			'/my-classes-feedback/:id',
+			verifyJWT,
+			verifyAdmin,
+			async (req, res) => {
+				const id = req.params.id;
+				const { feedback } = req.body;
+				const query = { _id: new ObjectId(id) };
+				const updateDoc = {
+					$set: {
+						feedback: feedback,
+					},
+				};
+				const result = await classCollection.updateOne(query, updateDoc);
+				res.send(result);
+			}
+		);
 
 		// Send a ping to confirm a successful connection
 		await client.db('admin').command({ ping: 1 });
