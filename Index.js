@@ -91,15 +91,14 @@ async function run() {
 		});
 
 		//select class
-
 		app.post('/select-class', verifyJWT, async (req, res) => {
 			const selectedClass = req.body;
 			const result = await selectedClassCollection.insertOne(selectedClass);
 			res.send(result);
 		});
-		app.get('/select-class/:email', verifyJWT, async (req, res) => {
-			const email = req.params.email;
-			const query = { studentEmail: email };
+		app.get('/select-class', verifyJWT, async (req, res) => {
+			const info = req.query;
+			const query = { studentEmail: info.email, paymentStatus: 'pending' };
 			const result = await selectedClassCollection.find(query).toArray();
 			res.send(result);
 		});
@@ -109,10 +108,15 @@ async function run() {
 			const result = await selectedClassCollection.findOne(query);
 			res.send(result);
 		});
-		app.delete('/remove-select-class/:id', verifyJWT, async (req, res) => {
+		app.patch('/select-class/:id', verifyJWT, async (req, res) => {
 			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
-			const result = await selectedClassCollection.deleteOne(query);
+			const updateDoc = {
+				$set: {
+					paymentStatus: 'paid',
+				},
+			};
+			const result = await selectedClassCollection.updateOne(query, updateDoc);
 			res.send(result);
 		});
 
