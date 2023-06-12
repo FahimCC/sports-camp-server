@@ -1,8 +1,8 @@
 const express = require('express');
 const cors = require('cors');
-require('dotenv').config();
 const jwt = require('jsonwebtoken');
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
+require('dotenv').config();
 const stripe = require('stripe')(process.env.STRIPE_PAYMENT_API);
 
 const app = express();
@@ -93,13 +93,27 @@ async function run() {
 		//select class
 		app.post('/select-class', verifyJWT, async (req, res) => {
 			const selectedClass = req.body;
+			const query = { className: selectedClass.className };
+			const existsClass = await selectedClassCollection.findOne(query);
+			if (existsClass) {
+				return res.send({ message: 'Class already added' });
+			}
 			const result = await selectedClassCollection.insertOne(selectedClass);
 			res.send(result);
 		});
 		app.get('/select-class', verifyJWT, async (req, res) => {
 			const info = req.query;
-			const query = { studentEmail: info.email, paymentStatus: 'pending' };
+			const query = {
+				studentEmail: info.email,
+				paymentStatus: info.paymentStatus,
+			};
 			const result = await selectedClassCollection.find(query).toArray();
+			res.send(result);
+		});
+		app.delete('/select-class/:id', verifyJWT, async (req, res) => {
+			const id = req.params.id;
+			const query = { _id: new ObjectId(id) };
+			const result = await selectedClassCollection.deleteOne(query);
 			res.send(result);
 		});
 		app.get('/remove-select-class/:id', verifyJWT, async (req, res) => {
@@ -308,6 +322,13 @@ async function run() {
 		app.post('/payment', async (req, res) => {
 			const paymentDetails = req.body;
 			const result = await paymentCollection.insertOne(paymentDetails);
+			res.send(result);
+		});
+		app.get('/payment', async (req, res) => {
+			const result = await paymentCollection
+				.find()
+				.sort({ date: -1 })
+				.toArray();
 			res.send(result);
 		});
 
