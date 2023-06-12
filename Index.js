@@ -93,7 +93,10 @@ async function run() {
 		//select class
 		app.post('/select-class', verifyJWT, async (req, res) => {
 			const selectedClass = req.body;
-			const query = { className: selectedClass.className };
+			const query = {
+				studentEmail: selectedClass.studentEmail,
+				className: selectedClass.className,
+			};
 			const existsClass = await selectedClassCollection.findOne(query);
 			if (existsClass) {
 				return res.send({ message: 'Class already added' });
@@ -124,13 +127,26 @@ async function run() {
 		});
 		app.patch('/select-class/:id', verifyJWT, async (req, res) => {
 			const id = req.params.id;
+			let { availableSeat } = req.body;
+			availableSeat--;
+			const query = { classId: id };
+			const updateDoc = {
+				$set: {
+					availableSeat: availableSeat,
+				},
+			};
+			const result = await selectedClassCollection.updateMany(query, updateDoc);
+			res.send(result);
+		});
+		app.patch('/paid-select-class/:id', verifyJWT, async (req, res) => {
+			const id = req.params.id;
 			const query = { _id: new ObjectId(id) };
 			const updateDoc = {
 				$set: {
 					paymentStatus: 'paid',
 				},
 			};
-			const result = await selectedClassCollection.updateOne(query, updateDoc);
+			const result = await selectedClassCollection.updateMany(query, updateDoc);
 			res.send(result);
 		});
 
@@ -228,17 +244,6 @@ async function run() {
 			}
 		);
 		app.get(
-			'/my-classes/:email',
-			verifyJWT,
-			verifyInstructor,
-			async (req, res) => {
-				const email = req.params.email;
-				const query = { instructorEmail: email };
-				const result = await classCollection.find(query).toArray();
-				res.send(result);
-			}
-		);
-		app.get(
 			'/update-class/:id',
 			verifyJWT,
 			verifyInstructor,
@@ -274,6 +279,19 @@ async function run() {
 		app.get('/classes/approved', async (req, res) => {
 			const query = { status: 'approved' };
 			const result = await classCollection.find(query).toArray();
+			res.send(result);
+		});
+		app.patch('/classes/approved/:id', verifyJWT, async (req, res) => {
+			const id = req.params.id;
+			let { availableSeat } = req.body;
+			availableSeat--;
+			const query = { _id: new ObjectId(id), status: 'approved' };
+			const updateDoc = {
+				$set: {
+					availableSeat: availableSeat,
+				},
+			};
+			const result = await classCollection.updateOne(query, updateDoc);
 			res.send(result);
 		});
 		app.patch('/my-classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
@@ -324,9 +342,11 @@ async function run() {
 			const result = await paymentCollection.insertOne(paymentDetails);
 			res.send(result);
 		});
-		app.get('/payment', async (req, res) => {
+		app.get('/payment/:email', async (req, res) => {
+			const email = req.params.email;
+			const query = { email: email };
 			const result = await paymentCollection
-				.find()
+				.find(query)
 				.sort({ date: -1 })
 				.toArray();
 			res.send(result);
