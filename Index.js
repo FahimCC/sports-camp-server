@@ -127,12 +127,14 @@ async function run() {
 		});
 		app.patch('/select-class/:id', verifyJWT, async (req, res) => {
 			const id = req.params.id;
-			let { availableSeat } = req.body;
+			let { availableSeat, enrollCount } = req.body;
 			availableSeat--;
+			enrollCount++;
 			const query = { classId: id };
 			const updateDoc = {
 				$set: {
 					availableSeat: availableSeat,
+					enrollCount: enrollCount,
 				},
 			};
 			const result = await selectedClassCollection.updateMany(query, updateDoc);
@@ -227,6 +229,7 @@ async function run() {
 			const newClass = req.body;
 			newClass.status = 'pending';
 			newClass.feedback = 'none';
+			newClass.enrollCount = 0;
 			const result = await classCollection.insertOne(newClass);
 			res.send(result);
 		});
@@ -281,14 +284,24 @@ async function run() {
 			const result = await classCollection.find(query).toArray();
 			res.send(result);
 		});
+		app.get('/popular-classes', async (req, res) => {
+			const query = { status: 'approved' };
+			const result = await classCollection
+				.find(query)
+				.sort({ enrollCount: -1 })
+				.toArray();
+			res.send(result);
+		});
 		app.patch('/classes/approved/:id', verifyJWT, async (req, res) => {
 			const id = req.params.id;
-			let { availableSeat } = req.body;
+			let { availableSeat, enrollCount } = req.body;
 			availableSeat--;
+			enrollCount++;
 			const query = { _id: new ObjectId(id), status: 'approved' };
 			const updateDoc = {
 				$set: {
 					availableSeat: availableSeat,
+					enrollCount: enrollCount,
 				},
 			};
 			const result = await classCollection.updateOne(query, updateDoc);
